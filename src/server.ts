@@ -1,5 +1,5 @@
-import { app } from './app.ts'
-import { env } from './config/env.ts'
+import { app } from './drivers/app.ts'
+import { env } from './resources/config/env.ts'
 
 try {
   await app.listen({ port: env.PORT }).then(() => {

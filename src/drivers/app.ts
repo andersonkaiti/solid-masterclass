@@ -1,7 +1,5 @@
 import fastifySwagger from '@fastify/swagger'
 import fastifySwaggerUI from '@fastify/swagger-ui'
-import { hash } from 'bcrypt'
-import { eq } from 'drizzle-orm'
 import fastify from 'fastify'
 import {
   jsonSchemaTransform,
@@ -10,8 +8,10 @@ import {
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod'
 import z from 'zod'
-import { db } from './db/client.ts'
-import { usersTable } from './db/schema.ts'
+import { EmailAlreadyExistsError } from '../application/errors/email-already-exists.ts'
+import { PasswordsDoNotMatchError } from '../application/errors/passwords-do-not-match.ts'
+import { UserCreationError } from '../application/errors/user-creation.ts'
+import { CreateUser } from '../application/use-cases/create-user.ts'
 
 export const app = fastify({ logger: true })
 
@@ -51,7 +51,16 @@ app.after(() => {
       }),
       response: {
         201: z.object({
-          id: z.uuid(),
+          name: z.string().trim().min(1),
+          age: z.number().int().min(18).max(100),
+          phoneNumber: z.string().trim().min(1),
+          email: z.email().trim(),
+          preferredMarketingChannel: z.enum([
+            'email',
+            'sms',
+            'push',
+            'whatsapp',
+          ]),
         }),
         400: z.object({
           error: z.string(),
@@ -66,59 +75,25 @@ app.after(() => {
     },
     handler: async (request, reply) => {
       try {
-        const {
-          age,
-          email,
-          name,
-          password,
-          passwordConfirmation,
-          phoneNumber,
-          preferredMarketingChannel,
-        } = request.body
+        const createUser = new CreateUser()
 
-        if (password !== passwordConfirmation) {
-          return reply.status(400).send({
-            error: 'As senhas não coincidem',
-          })
-        }
+        const output = await createUser.execute(request.body)
 
-        const [existingUser] = await db
-          .select()
-          .from(usersTable)
-          .where(eq(usersTable.email, email))
-
-        if (existingUser) {
-          return reply.status(409).send({
-            error: 'Usuário já cadastrado',
-          })
-        }
-
-        const [user] = await db
-          .insert(usersTable)
-          .values({
-            age,
-            email,
-            name,
-            password: await hash(password, 10),
-            phoneNumber,
-            preferredMarketingChannel,
-          })
-          .returning()
-
-        if (!user) {
-          return reply.status(500).send({
-            error: 'Erro ao criar usuário',
-          })
-        }
-
-        return reply.status(201).send({
-          id: user.id,
-        })
+        return reply.status(201).send(output)
       } catch (error) {
-        console.error(error)
-        return reply.status(500).send({
-          error: 'Erro ao criar usuário',
-        })
+        if (error instanceof PasswordsDoNotMatchError) {
+          return reply.status(400).send({ error: error.message })
+        }
+
+        if (error instanceof EmailAlreadyExistsError) {
+          return reply.status(409).send({ error: error.message })
+        }
+
+        if (error instanceof UserCreationError) {
+          return reply.status(500).send({ error: error.message })
+        }
+
+        return reply.status(500).send({ error: 'Error creating user' })
       }
     },
   })

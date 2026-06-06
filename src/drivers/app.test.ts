@@ -1,9 +1,9 @@
 import { faker } from '@faker-js/faker'
 import request from 'supertest'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { db } from '../resources/db/client.ts'
+import { usersTable } from '../resources/db/schema.ts'
 import { app } from './app.ts'
-import { db } from './db/client.ts'
-import { usersTable } from './db/schema.ts'
 
 beforeAll(async () => {
   await app.ready()
@@ -47,11 +47,18 @@ describe('GET /', () => {
 })
 
 describe('POST /users', () => {
-  it('should return 201 and the user id when the user is created', async () => {
-    const response = await request(app.server).post('/users').send(makeUser())
+  it('should return 201 and the user data when the user is created', async () => {
+    const user = makeUser()
+    const response = await request(app.server).post('/users').send(user)
 
     expect(response.status).toBe(201)
-    expect(response.body).toHaveProperty('id')
+    expect(response.body).toMatchObject({
+      name: user.name,
+      age: user.age,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      preferredMarketingChannel: user.preferredMarketingChannel,
+    })
   })
 
   it('should return 400 if passwords do not match', async () => {
