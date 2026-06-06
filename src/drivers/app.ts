@@ -12,6 +12,7 @@ import { EmailAlreadyExistsError } from '../application/errors/email-already-exi
 import { PasswordsDoNotMatchError } from '../application/errors/passwords-do-not-match.ts'
 import { UserCreationError } from '../application/errors/user-creation.ts'
 import { CreateUser } from '../application/use-cases/create-user.ts'
+import { UserRepositoryDrizzle } from '../resources/repositories/user-repository.ts'
 
 export const app = fastify({ logger: true })
 
@@ -33,7 +34,7 @@ app.register(fastifySwaggerUI, {
   routePrefix: '/docs',
 })
 
-app.get('/', () => ({ message: 'SOLID ' }))
+app.get('/', () => ({ message: 'SOLID Masterclass' }))
 
 app.after(() => {
   app.withTypeProvider<ZodTypeProvider>().route({
@@ -75,7 +76,7 @@ app.after(() => {
     },
     handler: async (request, reply) => {
       try {
-        const createUser = new CreateUser()
+        const createUser = new CreateUser(new UserRepositoryDrizzle())
 
         const output = await createUser.execute(request.body)
 

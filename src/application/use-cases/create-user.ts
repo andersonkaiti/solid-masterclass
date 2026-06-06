@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { hash } from 'bcrypt'
-import { UserDAO } from '../../resources/daos/user-dao.ts'
+import type { UserRepository } from '../../resources/repositories/user-repository.ts'
 import { EmailAlreadyExistsError } from '../errors/email-already-exists.ts'
 import { PasswordsDoNotMatchError } from '../errors/passwords-do-not-match.ts'
 import { UserCreationError } from '../errors/user-creation.ts'
@@ -24,6 +24,8 @@ interface OutputDTO {
 }
 
 export class CreateUser {
+  constructor(private userRepository: UserRepository) {}
+
   async execute(input: InputDTO): Promise<OutputDTO> {
     const {
       age,
@@ -39,9 +41,7 @@ export class CreateUser {
       throw new PasswordsDoNotMatchError()
     }
 
-    const userDAO = new UserDAO()
-
-    const existingUser = await userDAO.findByEmail(email)
+    const existingUser = await this.userRepository.findByEmail(email)
 
     if (existingUser) {
       throw new EmailAlreadyExistsError()
@@ -49,7 +49,7 @@ export class CreateUser {
 
     const hashedPassword = await hash(password, 10)
 
-    const user = await userDAO.create({
+    const user = await this.userRepository.create({
       id: randomUUID(),
       age,
       email,

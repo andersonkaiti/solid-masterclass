@@ -1,16 +1,15 @@
 import { eq } from 'drizzle-orm'
+import type { User } from '../../application/entities/user.ts'
 import { db } from '../db/client.ts'
 import { usersTable } from '../db/schema.ts'
 
-type User = typeof usersTable.$inferSelect
-
-export interface UserDAO {
-  findByEmail(email: string): Promise<User>
+export interface UserRepository {
+  findByEmail(email: string): Promise<User | null>
   create(user: User): Promise<User>
 }
 
-export class UserDAODrizzle implements UserDAO {
-  async findByEmail(email: string): Promise<User> {
+export class UserRepositoryDrizzle implements UserRepository {
+  async findByEmail(email: string): Promise<User | null> {
     const [existingUser] = await db
       .select()
       .from(usersTable)
