@@ -6,6 +6,7 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from 'fastify-type-provider-zod'
+import { errorHandler } from './error-handler.ts'
 import { createUserRoute } from './routes/create-user.ts'
 
 export const app = fastify({ logger: true })
@@ -27,6 +28,8 @@ app.register(fastifySwagger, {
 app.register(fastifySwaggerUI, {
   routePrefix: '/docs',
 })
+
+app.setErrorHandler(errorHandler)
 
 app.get('/', () => ({ message: 'SOLID Masterclass' }))
 

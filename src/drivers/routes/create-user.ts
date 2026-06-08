@@ -1,9 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import z from 'zod'
-import { EmailAlreadyExistsError } from '../../application/errors/email-already-exists.ts'
-import { PasswordsDoNotMatchError } from '../../application/errors/passwords-do-not-match.ts'
-import { UserCreationError } from '../../application/errors/user-creation.ts'
 import { CreateUser } from '../../application/use-cases/create-user.ts'
 import { UserRepositoryDrizzle } from '../../resources/repositories/user-repository.ts'
 
@@ -46,27 +43,11 @@ export async function createUserRoute(app: FastifyInstance) {
       },
     },
     handler: async (request, reply) => {
-      try {
-        const createUser = new CreateUser(new UserRepositoryDrizzle())
+      const createUser = new CreateUser(new UserRepositoryDrizzle())
 
-        const output = await createUser.execute(request.body)
+      const output = await createUser.execute(request.body)
 
-        return reply.status(201).send(output)
-      } catch (error) {
-        if (error instanceof PasswordsDoNotMatchError) {
-          return reply.status(400).send({ error: error.message })
-        }
-
-        if (error instanceof EmailAlreadyExistsError) {
-          return reply.status(409).send({ error: error.message })
-        }
-
-        if (error instanceof UserCreationError) {
-          return reply.status(500).send({ error: error.message })
-        }
-
-        return reply.status(500).send({ error: 'Error creating user' })
-      }
+      return reply.status(201).send(output)
     },
   })
 }
