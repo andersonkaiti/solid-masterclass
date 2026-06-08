@@ -4,6 +4,7 @@ import type { UserRepository } from '../../resources/repositories/user-repositor
 import { EmailAlreadyExistsError } from '../errors/email-already-exists.ts'
 import { PasswordsDoNotMatchError } from '../errors/passwords-do-not-match.ts'
 import { UserCreationError } from '../errors/user-creation.ts'
+import { SendNotificationFactory } from '../factories/index.ts'
 
 interface InputDTO {
   name: string
@@ -62,6 +63,12 @@ export class CreateUser {
     if (!user) {
       throw new UserCreationError()
     }
+
+    const sendNotification = SendNotificationFactory.create(
+      input.preferredMarketingChannel,
+    )
+
+    await sendNotification.send()
 
     const { password: _, ...data } = user
 
